@@ -4,17 +4,13 @@ import { NextResponse } from "next/server";
 export async function POST(req: Request) {
   try {
     const public_domain = process.env.NEXT_PUBLIC_DOMAIN;
-
     const { email, userId, priceId, fullName } = await req.json();
-
+    if (!email || !userId || !priceId || !fullName) return;
     const isExisitingCustomers = await stripeClient.customers.list({ email });
-
     let customer;
-
     if (isExisitingCustomers.data.length) {
       customer = isExisitingCustomers.data[0];
     }
-
     if (!customer) {
       customer = await stripeClient.customers.create({
         email,
@@ -51,6 +47,8 @@ export async function POST(req: Request) {
       return NextResponse.json(subscription.url);
     }
   } catch (error) {
+    console.log(error);
+
     return NextResponse.json(error, { status: 500 });
   }
 }

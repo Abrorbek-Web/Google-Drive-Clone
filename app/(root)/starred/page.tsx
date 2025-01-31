@@ -10,30 +10,35 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { auth } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React from "react";
 
 const getData = async (uid: string, type: "files" | "folders") => {
-  let data: any[] = [];
-  const q = query(
-    collection(db, type),
-    where("uid", "==", uid),
-    where("isArchive", "==", false),
-    where("isStar", "==", true)
-  );
-  const querySnapshot = await getDocs(q);
-  querySnapshot.forEach((doc) => {
-    data.push({ ...doc.data(), id: doc.id });
-  });
+  try {
+    if (!uid) return [];
+    let data: any[] = [];
+    const q = query(
+      collection(db, type),
+      where("uid", "==", uid),
+      where("isArchive", "==", false),
+      where("isStar", "==", true)
+    );
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+      data.push({ ...doc.data(), id: doc.id });
+    });
 
-  return data;
+    return data;
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
 };
 
 const StarredPage = async () => {
-  const { userId } = auth();
-  const folders = await getData(userId!, "folders");
-  const files = await getData(userId!, "files");
+  const user = await currentUser();
+  const folders = await getData(user?.id!, "folders");
+  const files = await getData(user?.id!, "files");
 
   return (
     <>
@@ -61,7 +66,10 @@ const StarredPage = async () => {
             </TableHeader>
             <TableBody>
               {folders.map((folder) => (
-                <ListItem key={folder.id} item={folder} />
+                <ListItem
+                  key={folder.id}
+                  item={JSON.parse(JSON.stringify(folder))}
+                />
               ))}
             </TableBody>
           </Table>

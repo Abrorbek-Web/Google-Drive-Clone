@@ -9,31 +9,33 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
-import { auth } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React from "react";
 
 const getData = async (uid: string) => {
-  let data: any[] = [];
-  const q = query(
-    collection(db, "files"),
-    where("uid", "==", uid),
-    where("isArchive", "==", false)
-  );
-  const querySnapshot = await getDocs(q);
-  querySnapshot.forEach((doc) => {
-    data.push({ ...doc.data(), id: doc.id });
-  });
-
-  return data;
+  try {
+    if (!uid) return [];
+    let data: any[] = [];
+    const q = query(
+      collection(db, "files"),
+      where("uid", "==", uid),
+      where("isArchive", "==", false)
+    );
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+      data.push({ ...doc.data(), id: doc.id });
+    });
+    return data;
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
 };
 
 const ClouPage = async () => {
-  const { userId } = auth();
+  const user = await currentUser();
 
-  const files = await getData(userId!);
-
-  console.log(files);
+  const files = await getData(user?.id!);
 
   const totalSize = files.reduce((acc, file) => acc + file.size, 0);
 

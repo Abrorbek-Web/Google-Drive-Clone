@@ -10,28 +10,33 @@ import {
 } from "@/components/ui/table";
 import { db } from "@/lib/firebase";
 import { DocIdProps } from "@/types";
-import { auth } from "@clerk/nextjs";
+import { currentUser } from "@clerk/nextjs/server";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import React from "react";
 
 const getFiles = async (folderId: string, uid: string) => {
-  let files: any[] = [];
-  const q = query(
-    collection(db, "folders", folderId, "files"),
-    where("uid", "==", uid),
-    where("isArchive", "==", true)
-  );
-  const querySnapshot = await getDocs(q);
-  querySnapshot.forEach((doc) => {
-    files.push({ ...doc.data(), id: doc.id });
-  });
+  try {
+    if (!uid) return [];
+    let files: any[] = [];
+    const q = query(
+      collection(db, "folders", folderId, "files"),
+      where("uid", "==", uid),
+      where("isArchive", "==", true)
+    );
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+      files.push({ ...doc.data(), id: doc.id });
+    });
 
-  return files;
+    return files;
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
 };
 
 const DocumentTrashPage = async ({ params }: DocIdProps) => {
-  const { userId } = auth();
-  const files = await getFiles(params.documentId, userId!);
+  const user = await currentUser();
+  const files = await getFiles(params.documentId, user?.id!);
 
   return (
     <>
@@ -49,7 +54,10 @@ const DocumentTrashPage = async ({ params }: DocIdProps) => {
           </TableHeader>
           <TableBody>
             {files.map((folder) => (
-              <TrashItem key={folder.id} item={folder} />
+              <TrashItem
+                key={folder.id}
+                item={JSON.parse(JSON.stringify(folder))}
+              />
             ))}
           </TableBody>
         </Table>

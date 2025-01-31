@@ -20,18 +20,23 @@ const getFolder = async (folderId: string) => {
 };
 
 const getFiles = async (folderId: string, uid: string) => {
-  let files: any[] = [];
-  const q = query(
-    collection(db, "folders", folderId, "files"),
-    where("uid", "==", uid),
-    where("isArchive", "==", false)
-  );
-  const querySnapshot = await getDocs(q);
-  querySnapshot.forEach((doc) => {
-    files.push({ ...doc.data(), id: doc.id });
-  });
+  try {
+    if (!uid) return [];
+    let files: any[] = [];
+    const q = query(
+      collection(db, "folders", folderId, "files"),
+      where("uid", "==", uid),
+      where("isArchive", "==", false)
+    );
+    const querySnapshot = await getDocs(q);
+    querySnapshot.forEach((doc) => {
+      files.push({ ...doc.data(), id: doc.id });
+    });
 
-  return files;
+    return files;
+  } catch (error) {
+    console.error("Error fetching data:", error);
+  }
 };
 
 const DocumentIdPage = async ({ params }: DocIdProps) => {
@@ -46,7 +51,10 @@ const DocumentIdPage = async ({ params }: DocIdProps) => {
       ) : (
         <div className="grid grid-cols-4 gap-4 mt-4">
           {files.map((file) => (
-            <SuggestCard item={file} key={file.id} />
+            <SuggestCard
+              item={JSON.parse(JSON.stringify(file))}
+              key={file.id}
+            />
           ))}
         </div>
       )}
